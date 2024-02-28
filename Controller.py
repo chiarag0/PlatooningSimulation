@@ -5,7 +5,7 @@ class Controller:
     def __init__(self, controller_states=[]):
         self.states = controller_states
 
-    def update_state(self, prec, T, kp, kd, h):  # GLI 1 SONO GLI e; prec è il veicolo precedente
+    def update_state(self, prec, T, kp, kd, h):  # prec è il veicolo precedente
         if len(self.states) == 1:
             self.states[-1].ksi = kp * self.states[-1].error + kd * self.states[-1].error / T + prec.states[-1].input
         else:

@@ -3,20 +3,24 @@ from ControllerState import ControllerState
 from Vehicle import Vehicle
 from VehicleState import VehicleState
 import random
+import matplotlib.pyplot as plt
 
 
 def main():
-    num_vehicles = 5
+    num_vehicles = 30
     vo = 16.67  # 60 km/h = 16.67 m/s
     init(num_vehicles, vo)
 
 
 def init(num_vehicles, vo):
-    tau = 0.1  # costante temporale che rappresenta le driveline dynamics
+    tau = 0.05  # costante temporale che rappresenta le driveline dynamics
     T = 0.1  # costante temporale che rappresenta il tempo di campionamento
-    kp = 0.2  # costante nella legge di controllo di ksi
-    kd = 0.7  # ""
+    kp = 0 # costante nella legge di controllo di ksi
+    kd = 0  # ""
     h = 0.5  # time headway
+
+    num_steps = 100
+
 
     vehicles = []
     controllers = []
@@ -46,7 +50,7 @@ def init(num_vehicles, vo):
         print("veicolo numero ", i, " : ", vehicles[i].states)
     vehicles[0].first = True
 
-    for k in range(0, 1000):  # esempio numero di campionamenti
+    for k in range(0, num_steps):  # esempio numero di campionamenti
         print("CAMPIONAMENTO NUMERO ", k, " : ")
         for i in range(num_vehicles):
             if i != 0:
@@ -54,26 +58,28 @@ def init(num_vehicles, vo):
             vehicles[i].controller.update_state(controllers[i - 1], T, kp, kd, h)
             vehicles[i].update_state(vehicles[i - 1], T, tau)
 
-            #print("Veicolo num", i, " : ")
-            #vehicles[i].controller.print_state()
-            #vehicles[i].print_state()
-            #print("\n")
-        #print("--------------------\n")
+            # print("Veicolo num", i, " : ")
+            # vehicles[i].controller.print_state()
+            # vehicles[i].print_state()
+            # print("\n")
+        # print("--------------------\n")
 
     print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
 
     for j in range(num_vehicles):  # CICLO DI STAMPE
         print("\n")
         print("Veicolo num", j, " ---------")
-        for k in range(1000):
-            if k % 100 == 0:
+        for k in range(10):
                 print("STEP NUM ", k)
-                print("Input: ", vehicles[j].controller.states[k].input, " ksi: ", vehicles[j].controller.states[k].ksi," error: ", vehicles[j].controller.states[k].error)
+                print("Input: ", vehicles[j].controller.states[k].input, " ksi: ", vehicles[j].controller.states[k].ksi,
+                      " error: ", vehicles[j].controller.states[k].error)
                 print("distance: ", vehicles[j].states[k].distance, ", velocity: ", vehicles[j].states[k].velocity,
-                    ", acceleration: ", vehicles[j].states[k].acceleration, ", position: ",
-                    vehicles[j].states[k].position)
+                      ", acceleration: ", vehicles[j].states[k].acceleration, ", position: ",
+                      vehicles[j].states[k].position)
 
     print("--------------------\n")
+
+    plot_vehicle_positions(vehicles)
 
 
 def generate_vehicle_types(
@@ -93,6 +99,56 @@ def generate_vehicle_types(
 
     return vehicle_types
 
+
+#visualizzazione continua
+def plot_vehicle_positions(vehicles):
+    time_steps = len(vehicles[0].states)
+    num_vehicles = len(vehicles)
+
+    for i in range(num_vehicles):
+        positions = [vehicles[i].states[t].position for t in range(time_steps)]
+        plt.plot(range(time_steps), positions, label=f"Vehicle {i}")
+
+    plt.xlabel("Time in s")
+    plt.ylabel("Position in m")
+    plt.legend()
+    plt.show()
+
+
+#visualizzazione discreta dove ogni grafico è uno step temporale
+# def plot_vehicle_positions(vehicles):
+#     time_steps = len(vehicles[0].states)
+#     num_vehicles = len(vehicles)
+#
+#     # Definiamo una posizione fissa lungo l'asse y per tutti i veicoli
+#     y_position = 0
+#     # Definiamo una lista per memorizzare le posizioni iniziali e finali dei veicoli per ogni time step
+#     positions = []
+#
+#     for t in range(time_steps):
+#         if t % 100 == 0:  # Controlla se il tempo è un multiplo di 100
+#             plt.figure()  # Crea un nuovo grafico
+#
+#             # Calcola le posizioni iniziali e finali dei veicoli per il time step corrente
+#             initial_positions = [vehicles[i].states[t].position for i in range(num_vehicles)]
+#             final_positions = [
+#                 vehicles[i].states[t + 1].position if t < time_steps - 1 else vehicles[i].states[t].position for i in
+#                 range(num_vehicles)]
+#             positions.append((initial_positions, final_positions))
+#
+#             for i in range(num_vehicles):
+#                 # Calcola la posizione lungo l'asse x in base alla posizione iniziale e finale del veicolo
+#                 x_start = positions[t // 100][0][i]  # Posizione iniziale del veicolo
+#                 x_end = positions[t // 100][1][i]  # Posizione finale del veicolo
+#                 plt.plot([x_start, x_end], [y_position, y_position], marker='o',
+#                          label=f"Vehicle {i}")  # Disegna un segmento tra la posizione iniziale e finale del veicolo
+#
+#             plt.xlabel("Position in m")
+#             plt.ylabel("Vehicle Alignment")
+#             plt.title(f"Time Step {t}")
+#             plt.legend()
+#             plt.show()
+#
 
 if __name__ == "__main__":
     main()
