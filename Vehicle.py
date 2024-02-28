@@ -9,7 +9,7 @@ class Vehicle:
         self.first = first
 
     def get_error(self, h):
-        ref_dist = self.states[-1].velocity / 2 + h * self.states[-1].velocity  # valore di r ? per ora vo/2
+        ref_dist = 5 + h * self.states[-1].velocity  # r è una costante = distanza min tra 2 veicoli, ad es 5 m
         error = self.states[-1].distance - ref_dist
         return error
 
@@ -21,6 +21,7 @@ class Vehicle:
         elif not self.first:
             new_state.distance = self.states[-1].distance + T * (prec.states[-1].velocity - self.states[-1].velocity)
             new_state.position = prec.states[-1].position - new_state.distance - self.length()
+            print(self.length())
         new_state.velocity = self.states[-1].velocity + T * self.states[-1].acceleration
         new_state.acceleration = self.states[-1].acceleration + T / tau * (
                 self.controller.states[-1].input - self.states[-1].acceleration)

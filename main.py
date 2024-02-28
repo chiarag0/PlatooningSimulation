@@ -15,12 +15,11 @@ def main():
 def init(num_vehicles, vo):
     tau = 0.05  # costante temporale che rappresenta le driveline dynamics
     T = 0.1  # costante temporale che rappresenta il tempo di campionamento
-    kp = 0 # costante nella legge di controllo di ksi
-    kd = 0  # ""
+    kp = 0.2  # = 0.2 costante nella legge di controllo di ksi
+    kd = 0.7 # = 0.7 ""
     h = 0.5  # time headway
 
     num_steps = 100
-
 
     vehicles = []
     controllers = []
@@ -28,10 +27,10 @@ def init(num_vehicles, vo):
     vehicle_types = generate_vehicle_types(num_vehicles)
 
     for i in range(num_vehicles):
-        controller_states = [ControllerState(0, 0, 0)]  # Lista di stati per ogni controllore
+        controller_states = [ControllerState(0.5, 0, 0)]  # Lista di stati per ogni controllore
         controllers.append(Controller(controller_states))
 
-        do = (vo * 3.6 / 10) ** 2  # iniziamo con una distanza di sicurezza tra i veicoli
+        do = 10
         if i == 0:
             if vehicle_types[i] == "car":
                 pos_zero = -4  # lunghezza macchina in metri
@@ -45,7 +44,7 @@ def init(num_vehicles, vo):
                 pos_zero = pos_zero - do - 10
             vehicle_states = [VehicleState(do, vo, 0, pos_zero)]
 
-        vehicles.append(Vehicle("car", vehicle_states, controllers[i], False))
+        vehicles.append(Vehicle(vehicle_types[i], vehicle_states, controllers[i], False))
         print("controller numero ", i, " : ", controllers[i].states)
         print("veicolo numero ", i, " : ", vehicles[i].states)
     vehicles[0].first = True
@@ -69,6 +68,7 @@ def init(num_vehicles, vo):
     for j in range(num_vehicles):  # CICLO DI STAMPE
         print("\n")
         print("Veicolo num", j, " ---------")
+        # for k in range(num_steps):
         for k in range(10):
                 print("STEP NUM ", k)
                 print("Input: ", vehicles[j].controller.states[k].input, " ksi: ", vehicles[j].controller.states[k].ksi,
@@ -109,7 +109,7 @@ def plot_vehicle_positions(vehicles):
         positions = [vehicles[i].states[t].position for t in range(time_steps)]
         plt.plot(range(time_steps), positions, label=f"Vehicle {i}")
 
-    plt.xlabel("Time in s")
+    plt.xlabel("Time in ds")
     plt.ylabel("Position in m")
     plt.legend()
     plt.show()
