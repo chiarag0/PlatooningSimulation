@@ -1,6 +1,7 @@
+
 from Controller import Controller
 from ControllerState import ControllerState
-from Vehicle import Vehicle
+from Vehicle import Vehicle, MAX_ACCELERATION
 from VehicleState import VehicleState
 import random
 import matplotlib.pyplot as plt
@@ -16,15 +17,20 @@ def init(num_vehicles, vo):
     tau = 0.05  # costante temporale che rappresenta le driveline dynamics
     T = 0.1  # costante temporale che rappresenta il tempo di campionamento
     kp = 0.2  # = 0.2 costante nella legge di controllo di ksi
-    kd = 0.7 # = 0.7 ""
+    kd = 0.7  # = 0.7 ""
     h = 0.5  # time headway
 
-    num_steps = 100
+    num_steps = 1000
 
     vehicles = []
     controllers = []
 
     vehicle_types = generate_vehicle_types(num_vehicles)
+
+    input_array = generate_input(num_steps)
+    print(input_array)
+    plot_input(input_array)
+
 
     for i in range(num_vehicles):
         controller_states = [ControllerState(0.5, 0, 0)]  # Lista di stati per ogni controllore
@@ -68,8 +74,9 @@ def init(num_vehicles, vo):
     for j in range(num_vehicles):  # CICLO DI STAMPE
         print("\n")
         print("Veicolo num", j, " ---------")
-        # for k in range(num_steps):
-        for k in range(10):
+        for k in range(num_steps):
+        # for k in range(10):
+            if k < 10 or k % 100 == 0:
                 print("STEP NUM ", k)
                 print("Input: ", vehicles[j].controller.states[k].input, " ksi: ", vehicles[j].controller.states[k].ksi,
                       " error: ", vehicles[j].controller.states[k].error)
@@ -98,6 +105,58 @@ def generate_vehicle_types(
     print(vehicle_types)
 
     return vehicle_types
+
+
+def generate_input(num_steps):
+
+    increase_percentage = random.uniform(0, 1)
+    constant_percentage = random.uniform(0, 1)
+    decrease_percentage = random.uniform(0, 1)
+
+    total_percentage = increase_percentage + constant_percentage + decrease_percentage
+    increase_percentage /= total_percentage
+    constant_percentage /= total_percentage
+    decrease_percentage /= total_percentage
+
+    increase_steps = int(num_steps * increase_percentage)
+    constant_steps = int(num_steps * constant_percentage)
+    decrease_steps = int(num_steps * decrease_percentage)
+
+    acceleration = []
+
+    # Calculate acceleration increment/decrement for each step
+    increase_acc = MAX_ACCELERATION / increase_steps
+    decrease_acc = MAX_ACCELERATION / decrease_steps
+
+    # Increase acceleration phase
+    for i in range(increase_steps):
+        acceleration.append(min((i + 1) * increase_acc, MAX_ACCELERATION))
+
+    # Constant acceleration phase
+    for i in range(constant_steps):
+        if acceleration and acceleration[-1] > 0:
+            acceleration.append(acceleration[-1])
+        else:
+            acceleration.append(0.5)
+
+    # Decrease acceleration phase
+    for i in range(decrease_steps):
+        acc_value = max(MAX_ACCELERATION - (i + 1) * decrease_acc, 0)
+        acceleration.append(acc_value if acc_value > 0 else 0)
+
+    return acceleration
+
+
+def plot_input(input_array):
+
+    plt.figure(figsize=(10, 6))
+    plt.plot(range(len(input_array)), input_array, marker='o', linestyle='-')
+    plt.title('Acceleration Profile')
+    plt.xlabel('Time Steps')
+    plt.ylabel('Acceleration')
+    plt.grid(True)
+    plt.show()
+
 
 
 #visualizzazione continua

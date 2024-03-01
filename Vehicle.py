@@ -1,5 +1,7 @@
 from VehicleState import VehicleState
 
+MAX_VELOCITY = 38.89  # m/s  = 140 km/h
+MAX_ACCELERATION = 2  # m/s^2
 
 class Vehicle:
     def __init__(self, type, vehicle_states, controller, first):
@@ -21,10 +23,19 @@ class Vehicle:
         elif not self.first:
             new_state.distance = self.states[-1].distance + T * (prec.states[-1].velocity - self.states[-1].velocity)
             new_state.position = prec.states[-1].position - new_state.distance - self.length()
-            print(self.length())
-        new_state.velocity = self.states[-1].velocity + T * self.states[-1].acceleration
-        new_state.acceleration = self.states[-1].acceleration + T / tau * (
-                self.controller.states[-1].input - self.states[-1].acceleration)
+
+        new_velocity = self.states[-1].velocity + T * self.states[-1].acceleration
+        if new_velocity > MAX_VELOCITY:
+            new_state.velocity = MAX_VELOCITY
+        else:
+            new_state.velocity = new_velocity
+
+        new_acceleration = self.states[-1].acceleration + T / tau * (
+                    self.controller.states[-1].input - self.states[-1].acceleration)
+        if new_acceleration > MAX_ACCELERATION:
+            new_state.acceleration = MAX_ACCELERATION
+        else:
+            new_state.acceleration = new_acceleration
 
         self.states.append(new_state)
 
