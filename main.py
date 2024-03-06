@@ -1,27 +1,28 @@
+import numpy as np
 
 from Controller import Controller
 from ControllerState import ControllerState
-from Vehicle import Vehicle, MAX_ACCELERATION
+from Vehicle import Vehicle, MAX_ACCELERATION, MIN_ACCELERATION
 from VehicleState import VehicleState
 import random
 import matplotlib.pyplot as plt
 
 
 def main():
-    num_vehicles = 30
+    num_vehicles = 10
     vo = 16.67  # 60 km/h = 16.67 m/s
+    # vo = 0  # partenza da fermo
     init(num_vehicles, vo)
 
 
 def init(num_vehicles, vo):
-    tau = 0.05  # costante temporale che rappresenta le driveline dynamics
+    tau = 0.1  # costante temporale che rappresenta le driveline dynamics
     T = 0.1  # costante temporale che rappresenta il tempo di campionamento
     kp = 0.2  # = 0.2 costante nella legge di controllo di ksi
     kd = 0.7  # = 0.7 ""
-    h = 0.5  # time headway
+    h = 0.7  # time headway
 
     num_steps = 1000
-
     vehicles = []
     controllers = []
 
@@ -33,10 +34,16 @@ def init(num_vehicles, vo):
 
 
     for i in range(num_vehicles):
-        controller_states = [ControllerState(0.5, 0, 0)]  # Lista di stati per ogni controllore
+        if i == 0:
+            controller_states = [ControllerState(input=input_value) for input_value in input_array]
+        else:
+            controller_states = [ControllerState() for _ in range(num_steps)]  # array di stati per ogni controllore
+        # controller_states = [ControllerState(0.5, 0, 0)]  # Lista di stati per ogni controllore
+
         controllers.append(Controller(controller_states))
 
-        do = 10
+        do = 100
+        r = 5
         if i == 0:
             if vehicle_types[i] == "car":
                 pos_zero = -4  # lunghezza macchina in metri
@@ -51,32 +58,36 @@ def init(num_vehicles, vo):
             vehicle_states = [VehicleState(do, vo, 0, pos_zero)]
 
         vehicles.append(Vehicle(vehicle_types[i], vehicle_states, controllers[i], False))
-        print("controller numero ", i, " : ", controllers[i].states)
-        print("veicolo numero ", i, " : ", vehicles[i].states)
+        # print("controller numero ", i, " : ", controllers[i].states)
+        # print("veicolo numero ", i, " : ", vehicles[i].states)
+        print("DIM ARRAY INPUT ", len(input_array))
+        print("DIM ARRAY STATI veicolo numero ", i, " : ", len(vehicles[i].controller.states))
     vehicles[0].first = True
 
-    for k in range(0, num_steps):  # esempio numero di campionamenti
-        print("CAMPIONAMENTO NUMERO ", k, " : ")
+    for k in range(1, num_steps):  # il primo stato (k=0) è già stato inizializzato
+        #print("CAMPIONAMENTO NUMERO ", k, " : ")
         for i in range(num_vehicles):
             if i != 0:
-                vehicles[i].controller.states[-1].error = vehicles[i].get_error(h)
-            vehicles[i].controller.update_state(controllers[i - 1], T, kp, kd, h)
-            vehicles[i].update_state(vehicles[i - 1], T, tau)
+                vehicles[i].controller.states[k-1].error = vehicles[i].get_error(h, k,r)
+            vehicles[i].controller.update_state(controllers[i - 1], T, kp, kd, h, k, i)
+            vehicles[i].update_state(vehicles[i - 1], T, tau,k)
 
             # print("Veicolo num", i, " : ")
-            # vehicles[i].controller.print_state()
+            # vehicles[i].controller.print_state(k)
             # vehicles[i].print_state()
             # print("\n")
-        # print("--------------------\n")
+        #print("--------------------\n")
 
-    print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
+
+    #print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
 
     for j in range(num_vehicles):  # CICLO DI STAMPE
         print("\n")
         print("Veicolo num", j, " ---------")
         for k in range(num_steps):
         # for k in range(10):
-            if k < 10 or k % 100 == 0:
+            #if k < 10 or k % 100 == 0:
+            if k % 10 == 0:
                 print("STEP NUM ", k)
                 print("Input: ", vehicles[j].controller.states[k].input, " ksi: ", vehicles[j].controller.states[k].ksi,
                       " error: ", vehicles[j].controller.states[k].error)
@@ -87,6 +98,7 @@ def init(num_vehicles, vo):
     print("--------------------\n")
 
     plot_vehicle_positions(vehicles)
+    plot_velocity(vehicles)
 
 
 def generate_vehicle_types(
@@ -107,44 +119,6 @@ def generate_vehicle_types(
     return vehicle_types
 
 
-def generate_input(num_steps):
-
-    increase_percentage = random.uniform(0, 1)
-    constant_percentage = random.uniform(0, 1)
-    decrease_percentage = random.uniform(0, 1)
-
-    total_percentage = increase_percentage + constant_percentage + decrease_percentage
-    increase_percentage /= total_percentage
-    constant_percentage /= total_percentage
-    decrease_percentage /= total_percentage
-
-    increase_steps = int(num_steps * increase_percentage)
-    constant_steps = int(num_steps * constant_percentage)
-    decrease_steps = int(num_steps * decrease_percentage)
-
-    acceleration = []
-
-    # Calculate acceleration increment/decrement for each step
-    increase_acc = MAX_ACCELERATION / increase_steps
-    decrease_acc = MAX_ACCELERATION / decrease_steps
-
-    # Increase acceleration phase
-    for i in range(increase_steps):
-        acceleration.append(min((i + 1) * increase_acc, MAX_ACCELERATION))
-
-    # Constant acceleration phase
-    for i in range(constant_steps):
-        if acceleration and acceleration[-1] > 0:
-            acceleration.append(acceleration[-1])
-        else:
-            acceleration.append(0.5)
-
-    # Decrease acceleration phase
-    for i in range(decrease_steps):
-        acc_value = max(MAX_ACCELERATION - (i + 1) * decrease_acc, 0)
-        acceleration.append(acc_value if acc_value > 0 else 0)
-
-    return acceleration
 
 
 def plot_input(input_array):
@@ -207,7 +181,48 @@ def plot_vehicle_positions(vehicles):
 #             plt.title(f"Time Step {t}")
 #             plt.legend()
 #             plt.show()
-#
+
+
+def generate_input(num_steps):
+    wave_length = num_steps // 4  #esempio di 4 onde quadre
+
+    # Crea un array con valori casuali compresi tra -2 e 2
+    input_array = np.random.uniform(-MIN_ACCELERATION, MAX_ACCELERATION, num_steps)
+
+    # Genera le onde quadre
+    zero_index = np.random.randint(0, 4) * wave_length
+    for i in range(0, num_steps, wave_length):
+        # Sceglie casualmente l'altezza dell'onda quadra
+        if i == zero_index:
+            height = 0
+        else:
+            if i == 0:  # Controllo per il primo intervallo
+                height = np.random.uniform(0, MAX_ACCELERATION)  # Altezza non negativa
+            else:
+                height = np.random.uniform(MIN_ACCELERATION, MAX_ACCELERATION)
+        # Assegna l'altezza ad ogni elemento dell'onda quadra
+        input_array[i:i + wave_length] = height
+
+    return input_array
+
+
+def plot_velocity(vehicles):
+    time_steps = len(vehicles[0].states)  # Assuming all vehicles have the same number of states
+    num_vehicles = len(vehicles)
+
+    plt.figure(figsize=(10, 6))
+
+    for i in range(num_vehicles):
+        velocities = [vehicles[i].states[t].velocity for t in range(time_steps)]
+        plt.plot(range(time_steps), velocities, label=f"Vehicle {i}")
+
+    plt.xlabel('Time Steps')
+    plt.ylabel('Velocity')
+    plt.title('Velocity of Vehicles')
+    plt.legend()
+    plt.grid(True)
+    plt.show()
+
 
 if __name__ == "__main__":
     main()
