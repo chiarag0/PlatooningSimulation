@@ -2,7 +2,7 @@ import numpy as np
 
 from Controller import Controller
 from ControllerState import ControllerState
-from Vehicle import Vehicle, MAX_ACCELERATION, MIN_ACCELERATION
+from Vehicle import Vehicle, MAX_ACCELERATION, MIN_ACCELERATION, MAX_VELOCITY
 from VehicleState import VehicleState
 import random
 import matplotlib.pyplot as plt
@@ -10,12 +10,12 @@ import matplotlib.pyplot as plt
 
 def main():
     num_vehicles = 10
-    vo = 16.67  # 60 km/h = 16.67 m/s
+    # vo = 16.67  # 60 km/h = 16.67 m/s
     # vo = 0  # partenza da fermo
-    init(num_vehicles, vo)
+    init(num_vehicles)
 
 
-def init(num_vehicles, vo):
+def init(num_vehicles):
     tau = 0.1  # costante temporale che rappresenta le driveline dynamics
     T = 0.1  # costante temporale che rappresenta il tempo di campionamento
     kp = 0.2  # = 0.2 costante nella legge di controllo di ksi
@@ -27,6 +27,7 @@ def init(num_vehicles, vo):
     controllers = []
 
     vehicle_types = generate_vehicle_types(num_vehicles)
+    initial_velocities = generate_initial_velocities(num_vehicles)
 
     input_array = generate_input(num_steps)
     print(input_array)
@@ -49,19 +50,18 @@ def init(num_vehicles, vo):
                 pos_zero = -4  # lunghezza macchina in metri
             elif vehicle_types[i] == "bus":
                 pos_zero = -10  # lunghezza bus in metri
-            vehicle_states = [VehicleState(0, vo, 0, pos_zero)]
+            vehicle_states = [VehicleState(0,initial_velocities[i], 0, pos_zero)]
         else:
             if vehicle_types[i] == "car":
                 pos_zero = pos_zero - do - 4
             elif vehicle_types[i] == "bus":
                 pos_zero = pos_zero - do - 10
-            vehicle_states = [VehicleState(do, vo, 0, pos_zero)]
+            vehicle_states = [VehicleState(do,initial_velocities[i], 0, pos_zero)]
 
         vehicles.append(Vehicle(vehicle_types[i], vehicle_states, controllers[i], False))
         # print("controller numero ", i, " : ", controllers[i].states)
         # print("veicolo numero ", i, " : ", vehicles[i].states)
-        print("DIM ARRAY INPUT ", len(input_array))
-        print("DIM ARRAY STATI veicolo numero ", i, " : ", len(vehicles[i].controller.states))
+
     vehicles[0].first = True
 
     for k in range(1, num_steps):  # il primo stato (k=0) è già stato inizializzato
@@ -222,6 +222,12 @@ def plot_velocity(vehicles):
     plt.legend()
     plt.grid(True)
     plt.show()
+
+
+def generate_initial_velocities(num_vehicles):
+    initial_velocities = [random.uniform(1, MAX_VELOCITY) for _ in range(num_vehicles)]
+    print(initial_velocities)
+    return initial_velocities
 
 
 if __name__ == "__main__":
