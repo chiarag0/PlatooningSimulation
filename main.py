@@ -97,7 +97,6 @@ def init(num_vehicles):
     print("--------------------\n")
 
     plot_vehicle_positions(vehicles)
-    plot_velocity(vehicles)
 
     trajectory_data = generate_trajectory_data(vehicles, num_steps)
     write_csv_file(trajectory_data, "trajectory_data.csv")
