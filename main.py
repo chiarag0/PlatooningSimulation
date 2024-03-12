@@ -1,4 +1,5 @@
 import numpy as np
+from trajectory_data_collector import generate_trajectory_data, write_csv_file
 
 from Controller import Controller
 from ControllerState import ControllerState
@@ -9,9 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def main():
-    num_vehicles = 10
-    # vo = 16.67  # 60 km/h = 16.67 m/s
-    # vo = 0  # partenza da fermo
+    num_vehicles = 5
     init(num_vehicles)
 
 
@@ -27,12 +26,13 @@ def init(num_vehicles):
     controllers = []
 
     vehicle_types = generate_vehicle_types(num_vehicles)
-    initial_velocities = generate_initial_velocities(num_vehicles)
+
+    vo_mode = "zero"  # zero, random, equal
+    initial_velocities = generate_initial_velocities(num_vehicles, vo_mode)
 
     input_array = generate_input(num_steps)
     print(input_array)
     plot_input(input_array)
-
 
     for i in range(num_vehicles):
         if i == 0:
@@ -50,13 +50,13 @@ def init(num_vehicles):
                 pos_zero = -4  # lunghezza macchina in metri
             elif vehicle_types[i] == "bus":
                 pos_zero = -10  # lunghezza bus in metri
-            vehicle_states = [VehicleState(0,initial_velocities[i], 0, pos_zero)]
+            vehicle_states = [VehicleState(0, initial_velocities[i], 0, pos_zero)]
         else:
             if vehicle_types[i] == "car":
                 pos_zero = pos_zero - do - 4
             elif vehicle_types[i] == "bus":
                 pos_zero = pos_zero - do - 10
-            vehicle_states = [VehicleState(do,initial_velocities[i], 0, pos_zero)]
+            vehicle_states = [VehicleState(do, initial_velocities[i], 0, pos_zero)]
 
         vehicles.append(Vehicle(vehicle_types[i], vehicle_states, controllers[i], False))
         # print("controller numero ", i, " : ", controllers[i].states)
@@ -65,29 +65,28 @@ def init(num_vehicles):
     vehicles[0].first = True
 
     for k in range(1, num_steps):  # il primo stato (k=0) è già stato inizializzato
-        #print("CAMPIONAMENTO NUMERO ", k, " : ")
+        # print("CAMPIONAMENTO NUMERO ", k, " : ")
         for i in range(num_vehicles):
             if i != 0:
-                vehicles[i].controller.states[k-1].error = vehicles[i].get_error(h, k,r)
+                vehicles[i].controller.states[k - 1].error = vehicles[i].get_error(h, k, r)
             vehicles[i].controller.update_state(controllers[i - 1], T, kp, kd, h, k, i)
-            vehicles[i].update_state(vehicles[i - 1], T, tau,k)
+            vehicles[i].update_state(vehicles[i - 1], T, tau, k)
 
             # print("Veicolo num", i, " : ")
             # vehicles[i].controller.print_state(k)
             # vehicles[i].print_state()
             # print("\n")
-        #print("--------------------\n")
+        # print("--------------------\n")
 
-
-    #print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
+    # print("|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||")
 
     for j in range(num_vehicles):  # CICLO DI STAMPE
         print("\n")
         print("Veicolo num", j, " ---------")
         for k in range(num_steps):
-        # for k in range(10):
-            #if k < 10 or k % 100 == 0:
-            if k % 10 == 0:
+            # for k in range(10):
+            if k < 10 or k % 100 == 0:
+                # if k % 10 == 0:
                 print("STEP NUM ", k)
                 print("Input: ", vehicles[j].controller.states[k].input, " ksi: ", vehicles[j].controller.states[k].ksi,
                       " error: ", vehicles[j].controller.states[k].error)
@@ -99,6 +98,9 @@ def init(num_vehicles):
 
     plot_vehicle_positions(vehicles)
     plot_velocity(vehicles)
+
+    trajectory_data = generate_trajectory_data(vehicles, num_steps)
+    write_csv_file(trajectory_data, "trajectory_data.csv")
 
 
 def generate_vehicle_types(
@@ -119,10 +121,7 @@ def generate_vehicle_types(
     return vehicle_types
 
 
-
-
 def plot_input(input_array):
-
     plt.figure(figsize=(10, 6))
     plt.plot(range(len(input_array)), input_array, marker='o', linestyle='-')
     plt.title('Acceleration Profile')
@@ -132,8 +131,7 @@ def plot_input(input_array):
     plt.show()
 
 
-
-#visualizzazione continua
+# visualizzazione continua
 def plot_vehicle_positions(vehicles):
     time_steps = len(vehicles[0].states)
     num_vehicles = len(vehicles)
@@ -148,7 +146,7 @@ def plot_vehicle_positions(vehicles):
     plt.show()
 
 
-#visualizzazione discreta dove ogni grafico è uno step temporale
+# visualizzazione discreta dove ogni grafico è uno step temporale
 # def plot_vehicle_positions(vehicles):
 #     time_steps = len(vehicles[0].states)
 #     num_vehicles = len(vehicles)
@@ -184,7 +182,7 @@ def plot_vehicle_positions(vehicles):
 
 
 def generate_input(num_steps):
-    wave_length = num_steps // 4  #esempio di 4 onde quadre
+    wave_length = num_steps // 10  # esempio di 4 onde quadre
 
     # Crea un array con valori casuali compresi tra -2 e 2
     input_array = np.random.uniform(-MIN_ACCELERATION, MAX_ACCELERATION, num_steps)
@@ -206,26 +204,35 @@ def generate_input(num_steps):
     return input_array
 
 
-def plot_velocity(vehicles):
-    time_steps = len(vehicles[0].states)  # Assuming all vehicles have the same number of states
-    num_vehicles = len(vehicles)
+# def plot_velocity(vehicles):
+#     time_steps = len(vehicles[0].states)  # Assuming all vehicles have the same number of states
+#     num_vehicles = len(vehicles)
+#
+#     plt.figure(figsize=(10, 6))
+#
+#     for i in range(num_vehicles):
+#         velocities = [vehicles[i].states[t].velocity for t in range(time_steps)]
+#         plt.plot(range(time_steps), velocities, label=f"Vehicle {i}")
+#
+#     plt.xlabel('Time Steps')
+#     plt.ylabel('Velocity')
+#     plt.title('Velocity of Vehicles')
+#     plt.legend()
+#     plt.grid(True)
+#     plt.show()
 
-    plt.figure(figsize=(10, 6))
 
-    for i in range(num_vehicles):
-        velocities = [vehicles[i].states[t].velocity for t in range(time_steps)]
-        plt.plot(range(time_steps), velocities, label=f"Vehicle {i}")
+def generate_initial_velocities(num_vehicles, mode):
+    if mode == "zero":
+        initial_velocities = [0] * num_vehicles
+    elif mode == "random":
+        initial_velocities = [random.uniform(0, MAX_VELOCITY) for _ in range(num_vehicles)]
+    elif mode == "equal":
+        constant_velocity = 16.67
+        initial_velocities = [constant_velocity] * num_vehicles
+    else:
+        raise ValueError("Invalid mode. Please choose from 'zero', 'random', or 'equal'.")
 
-    plt.xlabel('Time Steps')
-    plt.ylabel('Velocity')
-    plt.title('Velocity of Vehicles')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-
-
-def generate_initial_velocities(num_vehicles):
-    initial_velocities = [random.uniform(1, MAX_VELOCITY) for _ in range(num_vehicles)]
     print(initial_velocities)
     return initial_velocities
 
