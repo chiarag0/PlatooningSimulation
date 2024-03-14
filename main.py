@@ -97,6 +97,7 @@ def init(num_vehicles):
     print("--------------------\n")
 
     plot_vehicle_positions(vehicles)
+    plot_vehicle_distances(vehicles)
 
     trajectory_data = generate_trajectory_data(vehicles, num_steps)
     write_csv_file(trajectory_data, "trajectory_data.csv")
@@ -141,6 +142,20 @@ def plot_vehicle_positions(vehicles):
 
     plt.xlabel("Time in ds")
     plt.ylabel("Position in m")
+    plt.legend()
+    plt.show()
+
+
+def plot_vehicle_distances(vehicles):
+    time_steps = len(vehicles[0].states)
+    num_vehicles = len(vehicles)
+
+    for i in range(num_vehicles):
+        distances = [vehicles[i].states[t].distance for t in range(time_steps)]
+        plt.plot(range(time_steps), distances, label=f"Vehicle {i}")
+
+    plt.xlabel("Time in ds")
+    plt.ylabel("Distance in m")
     plt.legend()
     plt.show()
 
