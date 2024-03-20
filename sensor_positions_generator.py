@@ -23,7 +23,7 @@ def generate_sensor_positions(vehicles):
         x = min_x_pos + i * x_inc
         y = 0
         z = 2.5
-        x_rotation = 0
+        x_rotation = 90
         y_rotation = 0
         z_rotation = 0
         sensor_positions.append((x, y, z, x_rotation, y_rotation, z_rotation, "None"))
