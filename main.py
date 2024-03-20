@@ -1,4 +1,6 @@
 import numpy as np
+
+from sensor_positions_generator import generate_sensor_positions, write_sensor_positions_to_csv
 from trajectory_data_collector import generate_trajectory_data, write_csv_file
 
 from Controller import Controller
@@ -21,7 +23,7 @@ def init(num_vehicles):
     kd = 0.7  # = 0.7 ""
     h = 0.7  # time headway
 
-    num_steps = 1000
+    num_steps = 500
     vehicles = []
     controllers = []
 
@@ -39,11 +41,10 @@ def init(num_vehicles):
             controller_states = [ControllerState(input=input_value) for input_value in input_array]
         else:
             controller_states = [ControllerState() for _ in range(num_steps)]  # array di stati per ogni controllore
-        # controller_states = [ControllerState(0.5, 0, 0)]  # Lista di stati per ogni controllore
 
         controllers.append(Controller(controller_states))
 
-        do = 100
+        do = 50
         r = 5
         if i == 0:
             if vehicle_types[i] == "car":
@@ -101,6 +102,8 @@ def init(num_vehicles):
 
     trajectory_data = generate_trajectory_data(vehicles, num_steps)
     write_csv_file(trajectory_data, "trajectory_data.csv")
+    sensor_positions = generate_sensor_positions(vehicles)
+    write_sensor_positions_to_csv(sensor_positions, "sensor_positions.csv")
 
 
 def generate_vehicle_types(
@@ -160,53 +163,20 @@ def plot_vehicle_distances(vehicles):
     plt.show()
 
 
-# visualizzazione discreta dove ogni grafico è uno step temporale
-# def plot_vehicle_positions(vehicles):
-#     time_steps = len(vehicles[0].states)
-#     num_vehicles = len(vehicles)
-#
-#     # Definiamo una posizione fissa lungo l'asse y per tutti i veicoli
-#     y_position = 0
-#     # Definiamo una lista per memorizzare le posizioni iniziali e finali dei veicoli per ogni time step
-#     positions = []
-#
-#     for t in range(time_steps):
-#         if t % 100 == 0:  # Controlla se il tempo è un multiplo di 100
-#             plt.figure()  # Crea un nuovo grafico
-#
-#             # Calcola le posizioni iniziali e finali dei veicoli per il time step corrente
-#             initial_positions = [vehicles[i].states[t].position for i in range(num_vehicles)]
-#             final_positions = [
-#                 vehicles[i].states[t + 1].position if t < time_steps - 1 else vehicles[i].states[t].position for i in
-#                 range(num_vehicles)]
-#             positions.append((initial_positions, final_positions))
-#
-#             for i in range(num_vehicles):
-#                 # Calcola la posizione lungo l'asse x in base alla posizione iniziale e finale del veicolo
-#                 x_start = positions[t // 100][0][i]  # Posizione iniziale del veicolo
-#                 x_end = positions[t // 100][1][i]  # Posizione finale del veicolo
-#                 plt.plot([x_start, x_end], [y_position, y_position], marker='o',
-#                          label=f"Vehicle {i}")  # Disegna un segmento tra la posizione iniziale e finale del veicolo
-#
-#             plt.xlabel("Position in m")
-#             plt.ylabel("Vehicle Alignment")
-#             plt.title(f"Time Step {t}")
-#             plt.legend()
-#             plt.show()
-
 
 def generate_input(num_steps):
-    wave_length = num_steps // 10  # esempio di 4 onde quadre
+    num_waves = 5  # numero di onde quadre
+    wave_length = num_steps // num_waves
 
     # Crea un array con valori casuali compresi tra -2 e 2
     input_array = np.random.uniform(-MIN_ACCELERATION, MAX_ACCELERATION, num_steps)
 
     # Genera le onde quadre
-    zero_index = np.random.randint(0, 4) * wave_length
+    zero_index = np.random.randint(0, num_waves) * wave_length
     for i in range(0, num_steps, wave_length):
         # Sceglie casualmente l'altezza dell'onda quadra
         if i == zero_index:
-            height = 0
+            height = -2
         else:
             if i == 0:  # Controllo per il primo intervallo
                 height = np.random.uniform(0, MAX_ACCELERATION)  # Altezza non negativa

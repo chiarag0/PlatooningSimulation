@@ -32,8 +32,6 @@ class Vehicle:
             new_state.velocity = 0
         elif new_velocity >= MAX_VELOCITY:
             new_state.velocity = MAX_VELOCITY
-        elif new_velocity < 0:
-            new_state.velocity = 0
         else:
             new_state.velocity = new_velocity
 
