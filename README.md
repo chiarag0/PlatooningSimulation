@@ -1,0 +1,1 @@
+Leggere il documento Studio_sulle_Leggi_di_Controllo_per_il_Vehicle_Platooning__Implementazione_e_Simulazione_con_BlenSor.pdf
